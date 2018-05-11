@@ -38,18 +38,18 @@ run_psql () {
 echo "cd ./tools/testers/"
 cd ./tools/testers/
 echo "psql -f setup_db.sql"
-run_psql -f setup_db.sql
+run_psql -f setup_db.sql -h localhost $PGPORT
 
 
 if [ $RELEASE_TYPE = "bDebug" ]
 then
-    pg_prove ../../src/internalQueryTests/test/pgtap/* $PGPORT -d $PGDATABASE  -U $PGUSER
-    pg_prove ../../src/tsp/test/performance/* $PGPORT -d $PGDATABASE  -U $PGUSER
+    pg_prove ../../src/internalQueryTests/test/pgtap/* $PGPORT -d $PGDATABASE  -U $PGUSER -h localhost
+    pg_prove ../../src/tsp/test/performance/* $PGPORT -d $PGDATABASE  -U $PGUSER -h localhost
     echo "MADE TEST **********************"
 fi
 
-
-pg_prove $PGPORT -d $PGDATABASE  -U $PGUSER ../../pgtap/*/*
+pg_prove ../../pgtap/nazii_Dijkstra/* -d $PGDATABASE  -U $PGUSER -h localhost
+#pg_prove $PGPORT -d $PGDATABASE -h localhost -U $PGUSER ../../pgtap/*/*
 
 
 if [ "$?" -ne 0 ]
