@@ -7,7 +7,7 @@ Mail: project@pgrouting.org
 
 Function's developer:
 Copyright (c) 2018 Celia Virginia Vergara Castillo
-Mail: vicky_vergara@hotmail.com
+Mail: adityapratap.singh28@gmail.com
 
 
 ------
@@ -41,7 +41,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 /**
  *  postgres_connection.h
  *
- *  - should allways be first in the C code
+ *  - should always be first in the C code
  */
 #include "c_common/postgres_connection.h"
 
@@ -52,7 +52,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #include "c_common/e_report.h"
 /* for time_msg & clock */
 #include "c_common/time_msg.h"
-/* for functions to get edges informtion */
+/* for functions to get edges information */
 #include "c_common/edges_input.h"
 
 #include "drivers/prim/prim_driver.h"  // the link to the C++ code of the function
@@ -66,44 +66,13 @@ PG_FUNCTION_INFO_V1(prim);
 static
 void
 process(
-        char* edges_sql,
-        int64_t start_vid,
-        int64_t end_vid,
-#if 0
-        /*
-         * handling arrays example
-         */
-        ArrayType *starts,
-        ArrayType *ends,
-#endif
-        bool directed,
-        bool only_cost,
-        General_path_element_t **result_tuples,
+        char* edges_sql, 
+        pgr_prim_t **result_tuples,
         size_t *result_count) {
     /*
      *  https://www.postgresql.org/docs/current/static/spi-spi-connect.html
      */
     pgr_SPI_connect();
-
-
-#if 0
-    /*
-     *  handling arrays example
-     */
-
-    PGR_DBG("Initializing arrays");
-    int64_t* start_vidsArr = NULL;
-    size_t size_start_vidsArr = 0;
-    start_vidsArr = (int64_t*)
-        pgr_get_bigIntArray(&size_start_vidsArr, starts);
-    PGR_DBG("start_vidsArr size %ld ", size_start_vidsArr);
-
-    int64_t* end_vidsArr = NULL;
-    size_t size_end_vidsArr = 0;
-    end_vidsArr = (int64_t*)
-        pgr_get_bigIntArray(&size_end_vidsArr, ends);
-    PGR_DBG("end_vidsArr size %ld ", size_end_vidsArr);
-#endif
 
     (*result_tuples) = NULL;
     (*result_count) = 0;
@@ -111,14 +80,6 @@ process(
     PGR_DBG("Load data");
     pgr_edge_t *edges = NULL;
     size_t total_edges = 0;
-
-    if (start_vid == end_vid) {
-        /*
-         * https://www.postgresql.org/docs/current/static/spi-spi-finish.html
-         */
-        pgr_SPI_finish();
-        return;
-    }
 
     pgr_get_edges(edges_sql, &edges, &total_edges);
     PGR_DBG("Total %ld edges in query:", total_edges);
@@ -137,8 +98,7 @@ process(
     do_pgr_prim(
             edges,
             total_edges,
-            start_vid,
-            end_vid,
+
 #if 0
     /*
      *  handling arrays example
@@ -148,8 +108,6 @@ process(
             end_vidsArr, size_end_vidsArr,
 #endif
 
-            directed,
-            only_cost,
             result_tuples,
             result_count,
             &log_msg,
@@ -189,7 +147,7 @@ PGDLLEXPORT Datum prim(PG_FUNCTION_ARGS) {
     /**************************************************************************/
     /*                          MODIFY AS NEEDED                              */
     /*                                                                        */
-    General_path_element_t  *result_tuples = NULL;
+    pgr_prim_t *result_tuples = NULL;
     size_t result_count = 0;
     /*                                                                        */
     /**************************************************************************/
@@ -206,16 +164,12 @@ PGDLLEXPORT Datum prim(PG_FUNCTION_ARGS) {
            TEXT,
     BIGINT,
     BIGINT,
-    directed BOOLEAN DEFAULT true,
-    only_cost BOOLEAN DEFAULT false,
          **********************************************************************/
 
 
         PGR_DBG("Calling process");
         process(
                 text_to_cstring(PG_GETARG_TEXT_P(0)),
-                PG_GETARG_INT64(1),
-                PG_GETARG_INT64(2),
 #if 0
                 /*
                  *  handling arrays example
@@ -224,8 +178,6 @@ PGDLLEXPORT Datum prim(PG_FUNCTION_ARGS) {
                 PG_GETARG_ARRAYTYPE_P(1),
                 PG_GETARG_ARRAYTYPE_P(2),
 #endif
-                PG_GETARG_BOOL(3),
-                PG_GETARG_BOOL(4),
                 &result_tuples,
                 &result_count);
 
@@ -234,7 +186,7 @@ PGDLLEXPORT Datum prim(PG_FUNCTION_ARGS) {
         /**********************************************************************/
 
 #if PGSQL_VERSION > 94
-        funcctx->max_calls = result_count;
+        funcctx->max_calls = (uint32_t)result_count;
 #else
         funcctx->max_calls = (uint32_t)result_count;
 #endif
@@ -253,7 +205,7 @@ PGDLLEXPORT Datum prim(PG_FUNCTION_ARGS) {
 
     funcctx = SRF_PERCALL_SETUP();
     tuple_desc = funcctx->tuple_desc;
-    result_tuples = (General_path_element_t*) funcctx->user_fctx;
+    result_tuples = (pgr_prim_t*) funcctx->user_fctx;
 
     if (funcctx->call_cntr < funcctx->max_calls) {
         HeapTuple    tuple;
@@ -265,29 +217,30 @@ PGDLLEXPORT Datum prim(PG_FUNCTION_ARGS) {
         /*                          MODIFY AS NEEDED                          */
         /*
                OUT seq INTEGER,
-    OUT path_seq INTEGER,
-    OUT node BIGINT,
-    OUT edge BIGINT,
-    OUT cost FLOAT,
-    OUT agg_cost FLOAT
+               OUT start_node BIGINT,
+               OUT end_node BIGINT,
+               OUT edge BIGINT,
+               OUT cost FLOAT,
+               OUT agg_cost FLOAT
          ***********************************************************************/
 
-        values = palloc(6 * sizeof(Datum));
-        nulls = palloc(6 * sizeof(bool));
+        values = palloc(7 * sizeof(Datum));
+        nulls = palloc(7 * sizeof(bool));
 
 
         size_t i;
-        for (i = 0; i < 6; ++i) {
+        for (i = 0; i < 7; ++i) {
             nulls[i] = false;
         }
 
         // postgres starts counting from 1
         values[0] = Int32GetDatum(funcctx->call_cntr + 1);
         values[1] = Int32GetDatum(result_tuples[funcctx->call_cntr].seq);
-        values[2] = Int64GetDatum(result_tuples[funcctx->call_cntr].node);
-        values[3] = Int64GetDatum(result_tuples[funcctx->call_cntr].edge);
-        values[4] = Float8GetDatum(result_tuples[funcctx->call_cntr].cost);
-        values[5] = Float8GetDatum(result_tuples[funcctx->call_cntr].agg_cost);
+        values[2] = Int64GetDatum(result_tuples[funcctx->call_cntr].start_node);
+        values[3] = Int64GetDatum(result_tuples[funcctx->call_cntr].end_node);
+        values[4] = Int64GetDatum(result_tuples[funcctx->call_cntr].edge);
+        values[5] = Float8GetDatum(result_tuples[funcctx->call_cntr].cost);
+        values[6] = Float8GetDatum(result_tuples[funcctx->call_cntr].agg_cost);
         /**********************************************************************/
 
         tuple = heap_form_tuple(tuple_desc, values, nulls);

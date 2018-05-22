@@ -6,8 +6,8 @@ Copyright (c) 2015 pgRouting developers
 Mail: project@pgrouting.org
 
 Function's developer:
-Copyright (c) 2015 Celia Virginia Vergara Castillo
-Mail: vicky_vergara@hotmail.com
+Copyright (c) 2018 Celia Virginia Vergara Castillo
+Mail: adityapratap.singh28@gmail.com
 
 ------
 
@@ -32,35 +32,25 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #pragma once
 
 #include "c_types/pgr_edge_t.h"
-#include "c_types/general_path_element_t.h"
+#include "c_types/pgr_prim_t.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-    /*********************************************************
-      TEXT,
-    BIGINT,
-    BIGINT,
-    directed BOOLEAN DEFAULT true,
-    only_cost BOOLEAN DEFAULT false,
-     ********************************************************/
-
+/*********************************************************
+   TEXT,
+********************************************************/
 
     void
         do_pgr_prim(
                 pgr_edge_t  *data_edges,
                 size_t total_edges,
-                int64_t start_vid,
-                int64_t end_vid,
-                bool directed,
-                bool only_cost,
-                General_path_element_t **return_tuples,
+                pgr_prim_t **return_tuples,
                 size_t *return_count,
                 char ** log_msg,
                 char ** notice_msg,
                 char ** err_msg);
-
 
 #ifdef __cplusplus
 }

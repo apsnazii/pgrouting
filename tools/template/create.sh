@@ -29,10 +29,10 @@ fi
 
 
 #dont put pgr_ on MY_FUNCTION_NAME that is done automatically
-MY_FUNCTION_NAME="funnyDijkstra"
+MY_FUNCTION_NAME="prim"
 DEVELOPER_NAME="Celia Virginia Vergara Castillo"
 DEVELOPER_EMAIL="vicky_vergara\@hotmail.com"
-YEAR="2017"
+YEAR="2018"
 
 # Note: the "\n     " (change line and four spaces) after each comma
 # first line are the inputs

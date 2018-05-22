@@ -7,7 +7,7 @@ Mail: project@pgrouting.org
 
 Function's developer:
 Copyright (c) 2018 Celia Virginia Vergara Castillo
-Mail: vicky_vergara@hotmail.com
+Mail: adityapratap.singh28@gmail.com
 
 ------
 
@@ -33,7 +33,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #include <deque>
 #include <vector>
 
-#include "dijkstra/pgr_dijkstra.hpp"
+#include "prim/pgr_prim.hpp"
 
 #include "cpp_common/pgr_alloc.hpp"
 #include "cpp_common/pgr_assert.h"
@@ -52,15 +52,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 template < class G >
 static
-Path
+std::vector<pgr_prim_t>
 pgr_prim(
-        G &graph,
-        int64_t source,
-        int64_t target,
-        bool only_cost = false) {
-    Path path;
-    Pgr_dijkstra< G > fn_dijkstra;
-    return fn_dijkstra.dijkstra(graph, source, target, only_cost);
+        G &graph) {
+    std::vector<pgr_prim_t> results;
+    Pgr_prim< G > fn_prim;
+    return fn_prim.prim(graph);
 }
 
 
@@ -68,11 +65,7 @@ void
 do_pgr_prim(
         pgr_edge_t  *data_edges,
         size_t total_edges,
-        int64_t start_vid,
-        int64_t end_vid,
-        bool directed,
-        bool only_cost,
-        General_path_element_t **return_tuples,
+        pgr_prim_t **return_tuples,
         size_t *return_count,
         char ** log_msg,
         char ** notice_msg,
@@ -88,30 +81,17 @@ do_pgr_prim(
         pgassert(*return_count == 0);
         pgassert(total_edges != 0);
 
-        graphType gType = directed? DIRECTED: UNDIRECTED;
+        graphType gType = UNDIRECTED;
 
-        Path path;
+        std::vector<pgr_prim_t> results;
 
-        if (directed) {
-            log << "Working with directed Graph\n";
-            pgrouting::DirectedGraph digraph(gType);
-            digraph.insert_edges(data_edges, total_edges);
-            path = pgr_prim(digraph,
-                    start_vid,
-                    end_vid,
-                    only_cost);
-        } else {
-            log << "Working with Undirected Graph\n";
-            pgrouting::UndirectedGraph undigraph(gType);
-            undigraph.insert_edges(data_edges, total_edges);
-            path = pgr_prim(
-                    undigraph,
-                    start_vid,
-                    end_vid,
-                    only_cost);
-        }
+        log << "Working with Undirected Graph\n";
+        pgrouting::PrimUndiGraph undigraph(gType); //
+        undigraph.insert_edges(data_edges, total_edges);
+        results = pgr_prim(
+                 undigraph);
 
-        auto count = path.size();
+        auto count = results.size();
 
         if (count == 0) {
             (*return_tuples) = NULL;
@@ -122,9 +102,10 @@ do_pgr_prim(
         }
 
         (*return_tuples) = pgr_alloc(count, (*return_tuples));
-        size_t sequence = 0;
-        path.generate_postgres_data(return_tuples, sequence);
-        (*return_count) = sequence;
+        for (size_t i = 0; i < count; i++) {
+            *((*return_tuples) + i) = results[i];
+        }
+        (*return_count) = count;
 
         pgassert(*err_msg == NULL);
         *log_msg = log.str().empty()?
